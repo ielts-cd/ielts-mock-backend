@@ -1,3 +1,4 @@
+import uuid
 from rest_framework import serializers
 from .models import Group, Exam, Assignment, ExamAttempt
 from apps.accounts.models import User, Organization
@@ -9,9 +10,17 @@ class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
         fields = ['id', 'organization', 'name', 'level', 'student_count', 'created_at']
+        extra_kwargs = {
+            'id': {'required': False},
+            'organization': {'required': False},
+        }
 
     def get_student_count(self, obj):
         return User.objects.filter(group=obj, role='student').count()
+
+    def create(self, validated_data):
+        validated_data.setdefault('id', f"grp_{uuid.uuid4().hex[:12]}")
+        return super().create(validated_data)
 
 
 class ExamSerializer(serializers.ModelSerializer):
@@ -23,6 +32,12 @@ class ExamSerializer(serializers.ModelSerializer):
         fields = ['id', 'organization', 'title', 'exam_type', 'status', 'assigned_groups',
                   'assigned_group_ids', 'sections_data', 'enabled_sections', 'created_at',
                   'reopened_at', 'notif_seen_by']
+        extra_kwargs = {
+            'id': {'required': False},
+            'organization': {'required': False},
+            'assigned_groups': {'required': False},
+            'notif_seen_by': {'required': False},
+        }
 
     def get_assigned_group_ids(self, obj):
         return list(obj.assigned_groups.values_list('id', flat=True))
@@ -30,6 +45,10 @@ class ExamSerializer(serializers.ModelSerializer):
     def get_enabled_sections(self, obj):
         sections = obj.sections_data or {}
         return [k for k, v in sections.items() if v.get('enabled')]
+
+    def create(self, validated_data):
+        validated_data.setdefault('id', f"exam_{uuid.uuid4().hex[:12]}")
+        return super().create(validated_data)
 
 
 class AssignmentSerializer(serializers.ModelSerializer):
@@ -42,6 +61,13 @@ class AssignmentSerializer(serializers.ModelSerializer):
         fields = ['id', 'organization', 'title', 'content', 'file_url', 'file_name',
                   'file_mime', 'groups', 'group_ids', 'target_students', 'target_student_ids',
                   'viewed_by', 'viewed_by_ids', 'created_at']
+        extra_kwargs = {
+            'id': {'required': False},
+            'organization': {'required': False},
+            'groups': {'required': False},
+            'target_students': {'required': False},
+            'viewed_by': {'required': False},
+        }
 
     def get_group_ids(self, obj):
         return list(obj.groups.values_list('id', flat=True))
@@ -51,6 +77,10 @@ class AssignmentSerializer(serializers.ModelSerializer):
 
     def get_viewed_by_ids(self, obj):
         return list(obj.viewed_by.values_list('id', flat=True))
+
+    def create(self, validated_data):
+        validated_data.setdefault('id', f"asg_{uuid.uuid4().hex[:12]}")
+        return super().create(validated_data)
 
 
 class ExamAttemptSerializer(serializers.ModelSerializer):

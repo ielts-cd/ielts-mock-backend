@@ -1,3 +1,5 @@
+# YANGI:
+import uuid
 from rest_framework import serializers
 from .models import ExamResult
 
@@ -13,12 +15,21 @@ class ExamResultSerializer(serializers.ModelSerializer):
                   'section_raw', 'review_data', 'stats', 'writing_status', 'writing_band',
                   'task1_band', 'task2_band', 'task1_criteria', 'task2_criteria',
                   'exam_title', 'exam_type', 'submitted_at']
+        extra_kwargs = {
+            'id': {'required': False},
+            'organization': {'required': False},
+            'student': {'required': False},
+        }
 
     def get_student_name(self, obj):
         return obj.student.name if obj.student else None
 
     def get_exam_title_display(self, obj):
         return obj.exam.title if obj.exam else obj.exam_title
+
+    def create(self, validated_data):
+        validated_data.setdefault('id', f"res_{uuid.uuid4().hex[:12]}")
+        return super().create(validated_data)
 
 
 class GradeWritingSerializer(serializers.Serializer):

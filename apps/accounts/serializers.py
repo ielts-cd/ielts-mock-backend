@@ -1,3 +1,5 @@
+# YANGI:
+import uuid
 from datetime import datetime
 from rest_framework import serializers
 from .models import Organization, User, SupportTicket
@@ -72,12 +74,25 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
 
+# YANGI:
 class SupportTicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = SupportTicket
         fields = ['id', 'organization', 'user', 'user_name', 'user_role', 'org_name',
                   'message', 'seen', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['created_at']
+        extra_kwargs = {
+            'id': {'required': False},
+            'organization': {'required': False},
+            'user': {'required': False},
+            'user_name': {'required': False},
+            'user_role': {'required': False},
+            'org_name': {'required': False},
+        }
+
+    def create(self, validated_data):
+        validated_data.setdefault('id', f"tkt_{uuid.uuid4().hex[:12]}")
+        return super().create(validated_data)
 
 
 class LoginSerializer(serializers.Serializer):
