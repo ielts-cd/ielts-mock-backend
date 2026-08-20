@@ -1,0 +1,65 @@
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from .models import User, Group, Exam, Assignment
+from apps.accounts.permissions import IsAdmin, IsTeacher, IsOrganizationMember
+from apps.accounts.serializers import UserSerializer
+
+
+class StudentViewSet(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated, IsOrganizationMember]
+    search_fields = ['name', 'username']
+    filterset_fields = ['group', 'status']
+
+    def get_queryset(self):
+        if self.request.user.role == 'support':
+            return User.objects.filter(role='student')
+        if self.request.user.role in ['ceo', 'admin', 'manager', 'teacher']:
+            return User.objects.filter(
+                role='student',
+                organization_id=self.request.user.organization_id
+            )
+        return User.objects.filter(id=self.request.user.id)
+
+    def perform_create(self, serializer):
+        # Generate username if not provided
+        data = self.request.data
+        name = data.get('name', '')
+        base = name.strip().lower().replace(' ', '.')
+        if not base:
+            base = 'student'
+
+        existing = User.objects.filter(username__startswith=base).count()
+        username = f"{base}{existing + 1}" if existing else base
+
+        serializer.save(
+            role='student',
+            username=username,
+            organization_id=self.request.user.organization_id
+        )
+
+    @action(detail=True, methods=['get'])
+    def password(self, request, pk=None):
+        student = self.get_object()
+        if request.user.role not in ['ceo', 'admin', 'support'] and request.user.id != student.id:
+            return Response({'success': False, 'message': 'Permission denied'},
+                            status=status.HTTP_403_FORBIDDEN)
+        return Response({'success': True, 'data': {'password': student.password}})
+
+    @action(detail=True, methods=['put'])
+    def password(self, request, pk=None):
+        student = self.get_object()
+        if request.user.role not in ['ceo', 'admin', 'support']:
+            return Response({'success': False, 'message': 'Permission denied'},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        new_password = request.data.get('password')
+        if not new_password:
+            return Response({'success': False, 'message': 'Password required'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        student.set_password(new_password)
+        student.save()
+        return Response({'success': True, 'message': 'Password updated'})
