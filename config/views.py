@@ -1,8 +1,14 @@
-from django.http import FileResponse
-from pathlib import Path
-from django.conf import settings
+from django.http import JsonResponse
 
 
 def frontend(request):
-    index_file = Path(settings.BASE_DIR) / 'frontend' / 'index.html'
-    return FileResponse(open(index_file, 'rb'), content_type='text/html')
+    """
+    Frontend Netlify'da alohida joylashgan (bu Django loyihasi faqat API).
+    Root manzilga kirilganda API ishlab turganini tasdiqlovchi oddiy javob
+    qaytaramiz — bu Railway'ning health-check tekshiruvi uchun ham foydali.
+    """
+    return JsonResponse({
+        'status': 'ok',
+        'service': 'ielts-mock-backend',
+        'message': 'API ishlayapti. Frontend alohida (Netlify) joylashgan.',
+    })
