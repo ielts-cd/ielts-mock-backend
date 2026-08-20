@@ -1,3 +1,4 @@
+from datetime import datetime
 from rest_framework import serializers
 from .models import Organization, User, SupportTicket
 from apps.exams.models import Group
@@ -7,7 +8,10 @@ class OrganizationSerializer(serializers.ModelSerializer):
         model = Organization
         fields = ['id', 'org_name', 'ceo_name', 'phone', 'email', 'username', 'password',
                   'telegram_chat_id', 'avatar', 'status', 'created_at', 'updated_at']
-        extra_kwargs = {'password': {'write_only': True}}
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'id': {'required': False},
+        }
 
     def create(self, validated_data):
         validated_data['id'] = validated_data.get('id') or f"org_{self.context.get('request').user.id}_{int(datetime.now().timestamp())}"
@@ -35,7 +39,10 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'organization', 'name', 'username', 'password', 'phone',
                   'role', 'telegram_chat_id', 'avatar', 'status', 'group', 'group_name',
                   'group_id', 'created_at', 'updated_at']
-        extra_kwargs = {'password': {'write_only': True}}
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'id': {'required': False},
+        }
 
     def get_group_name(self, obj):
         if obj.group:

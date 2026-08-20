@@ -5,7 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth.hashers import check_password
 from .models import Organization, User
-from .serializers import LoginSerializer, ChangePasswordSerializer, UserSerializer
+from .serializers import LoginSerializer, ChangePasswordSerializer, UserSerializer, OrganizationSerializer
 
 class LoginView(APIView):
     permission_classes = [AllowAny]

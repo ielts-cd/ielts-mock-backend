@@ -22,6 +22,13 @@ class Organization(models.Model):
     def check_password(self, raw_password):
         return check_password(raw_password, self.password)
 
+    @property
+    def organization_id(self):
+        # CEO login qilganda request.user shu Organization obyekti bo'ladi
+        # (User emas). Butun kodda request.user.organization_id ishlatilgani
+        # uchun bu property CEO holatida ham xuddi shu ishlashini ta'minlaydi.
+        return self.id
+
     class Meta:
         db_table = 'organizations'
 
