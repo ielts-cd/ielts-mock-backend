@@ -17,26 +17,26 @@ class SupportTicketViewSet(viewsets.ModelViewSet):
             return SupportTicket.objects.all()
         return SupportTicket.objects.filter(user=self.request.user)
 
-        def perform_create(self, serializer):
-            user = self.request.user
-            # CEO login qilganda `user` aslida Organization obyekti bo'ladi va uning
-            # 'organization'/'name' maydonlari User modelidagidan farq qiladi —
-            # shu sabab CEO uchun alohida holat qaraymiz (aks holda AttributeError
-            # yoki noto'g'ri org_name chiqishi mumkin edi).
-            if user.role == 'ceo':
-                org = user  # Organization obyekti
-                display_name = org.ceo_name
-            else:
-                org = getattr(user, 'organization', None)
-                display_name = user.name
+    def perform_create(self, serializer):
+        # CEO login qilganda `user` aslida Organization obyekti bo'ladi va uning
+        # 'organization'/'name' maydonlari User modelidagidan farq qiladi —
+        # shu sabab CEO uchun alohida holat qaraymiz (aks holda AttributeError
+        # yoki noto'g'ri org_name chiqishi mumkin edi).
+        user = self.request.user
+        if user.role == 'ceo':
+            org = user  # Organization obyekti
+            display_name = org.ceo_name
+        else:
+            org = getattr(user, 'organization', None)
+            display_name = user.name
 
-            serializer.save(
-                user=user if user.role != 'ceo' else None,
-                user_name=display_name,
-                user_role=user.role,
-                organization=org,
-                org_name=org.org_name if org else ''
-            )
+        serializer.save(
+            user=user if user.role != 'ceo' else None,
+            user_name=display_name,
+            user_role=user.role,
+            organization=org,
+            org_name=org.org_name if org else ''
+        )
 
     @action(detail=True, methods=['put'])
     def mark_seen(self, request, pk=None):
