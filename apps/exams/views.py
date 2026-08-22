@@ -147,3 +147,37 @@ class ExamViewSet(viewsets.ModelViewSet):
 
         serializer = ExamAttemptSerializer(attempt)
         return Response({'success': True, 'data': serializer.data})
+
+    @action(detail=True, methods=['post'])
+    def submit(self, request, pk=None):
+        exam = self.get_object()
+        student = request.user
+
+        attempt = ExamAttempt.objects.filter(
+            student=student,
+            exam=exam,
+            status='in_progress'
+        ).first()
+
+        if not attempt:
+            return Response({'success': True, 'data': {'attempt_id': None}})
+
+        # Oxirgi holatni ham saqlab qo'yamiz (agar yuborilgan bo'lsa), keyin
+        # attempt'ni "submitted" deb belgilaymiz — shu bilan "start" endi
+        # shu attempt'ni qaytarmaydi va yangi urinish boshlanadi.
+        data = request.data or {}
+        if data:
+            attempt.current_section_index = data.get('current_section_index', attempt.current_section_index)
+            attempt.answers = data.get('answers', attempt.answers)
+            attempt.writing_text = data.get('writing_text', attempt.writing_text)
+            attempt.flagged = data.get('flagged', attempt.flagged)
+            attempt.notepad_text = data.get('notepad_text', attempt.notepad_text)
+            attempt.font_level = data.get('font_level', attempt.font_level)
+            attempt.section_deadlines = data.get('section_deadlines', attempt.section_deadlines)
+            attempt.progress_data = data.get('progress_data', attempt.progress_data)
+
+        attempt.status = 'submitted'
+        attempt.submitted_at = timezone.now()
+        attempt.save()
+
+        return Response({'success': True, 'data': {'attempt_id': attempt.id}})

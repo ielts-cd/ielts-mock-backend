@@ -13,6 +13,11 @@ class Organization(models.Model):
     telegram_chat_id = models.CharField(max_length=50, blank=True)
     avatar = models.TextField(blank=True)
     status = models.CharField(max_length=20, default='active')
+    # UI preferences (avval brauzer localStorage'da saqlanardi — endi
+    # hisobga bog'liq bo'lgani uchun backend'da, shunda foydalanuvchi
+    # qaysi qurilma/brauzerdan kirmasin bir xil ko'rinishni ko'radi).
+    theme = models.CharField(max_length=10, default='light')
+    sidebar_collapsed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -54,6 +59,11 @@ class User(models.Model):
     avatar = models.TextField(blank=True)
     status = models.CharField(max_length=20, default='active')
     group = models.ForeignKey('exams.Group', null=True, blank=True, on_delete=models.SET_NULL)
+    # UI preferences (avval brauzer localStorage'da saqlanardi — endi
+    # hisobga bog'liq bo'lgani uchun backend'da, shunda foydalanuvchi
+    # qaysi qurilma/brauzerdan kirmasin bir xil ko'rinishni ko'radi).
+    theme = models.CharField(max_length=10, default='light')
+    sidebar_collapsed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

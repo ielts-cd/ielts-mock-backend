@@ -8,12 +8,26 @@ from .permissions import IsSupport
 
 class OrganizationViewSet(viewsets.ModelViewSet):
     serializer_class = OrganizationSerializer
-    permission_classes = [IsAuthenticated, IsSupport]
     search_fields = ['org_name', 'ceo_name', 'username']
     filterset_fields = ['status']
 
+    def get_permissions(self):
+        # Ro'yxatni ko'rish/yaratish/o'chirish/holatini o'zgartirish — faqat
+        # Support (platforma darajasida boshqaradi). Lekin CEO/Admin o'z
+        # tashkilotining profilini (nom/email/Telegram Chat ID/parol) shu
+        # endpoint orqali TAHRIRLASHI kerak (masalan profil sahifasidan) —
+        # shu sabab retrieve/update/partial_update uchun IsAuthenticated
+        # yetarli, aniqroq tekshiruv get_queryset/get_object darajasida.
+        if self.action in ['list', 'create', 'destroy', 'status']:
+            return [IsAuthenticated(), IsSupport()]
+        return [IsAuthenticated()]
+
     def get_queryset(self):
-        return Organization.objects.all()
+        if self.request.user.role == 'support':
+            return Organization.objects.all()
+        if self.request.user.role in ['ceo', 'admin'] and self.request.user.organization_id:
+            return Organization.objects.filter(id=self.request.user.organization_id)
+        return Organization.objects.none()
 
     @action(detail=True, methods=['patch'])
     def status(self, request, pk=None):

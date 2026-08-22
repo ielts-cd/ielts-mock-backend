@@ -9,7 +9,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
         fields = ['id', 'org_name', 'ceo_name', 'phone', 'email', 'username', 'password',
-                  'telegram_chat_id', 'avatar', 'status', 'created_at', 'updated_at']
+                  'telegram_chat_id', 'avatar', 'status', 'theme', 'sidebar_collapsed',
+                  'created_at', 'updated_at']
         extra_kwargs = {
             'password': {'write_only': True},
             'id': {'required': False},
@@ -39,8 +40,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'organization', 'name', 'username', 'password', 'phone',
-                  'role', 'telegram_chat_id', 'avatar', 'status', 'group', 'group_name',
-                  'group_id', 'created_at', 'updated_at']
+                  'role', 'telegram_chat_id', 'avatar', 'status', 'theme', 'sidebar_collapsed',
+                  'group', 'group_name', 'group_id', 'created_at', 'updated_at']
         extra_kwargs = {
             'password': {'write_only': True},
             'id': {'required': False},

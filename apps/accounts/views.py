@@ -85,6 +85,8 @@ class LoginView(APIView):
                 'email': org.email,
                 'avatar': org.avatar,
                 'role': 'ceo',
+                'theme': org.theme,
+                'sidebar_collapsed': org.sidebar_collapsed,
             }
             if org.status != 'active':
                 return Response({
@@ -102,6 +104,8 @@ class LoginView(APIView):
                 'avatar': user.avatar,
                 'status': user.status,
                 'group': user.group_id,
+                'theme': user.theme,
+                'sidebar_collapsed': user.sidebar_collapsed,
             }
             if user.status != 'active':
                 return Response({
@@ -201,9 +205,12 @@ class ProfileView(APIView):
                     'email': org.email,
                     'avatar': org.avatar,
                     'role': 'ceo',
+                    'theme': org.theme,
+                    'sidebar_collapsed': org.sidebar_collapsed,
                     'organization': {
                         'id': org.id,
                         'name': org.org_name,
+                        'email': org.email,
                         'telegram_chat_id': org.telegram_chat_id,
                         'status': org.status,
                     }
@@ -213,7 +220,23 @@ class ProfileView(APIView):
                 pass
 
         serializer = UserSerializer(user)
-        return Response({'success': True, 'data': serializer.data})
+        data = serializer.data
+        # CEO'nikiga o'xshab, o'z tashkilotining ochiq ma'lumotlari (nomi,
+        # Telegram Chat ID, holati) shu yerda ilova qilinadi — frontend
+        # buni "organizations" ro'yxatini alohida so'rab o'tirmasdan
+        # (bu endpoint faqat Support uchun ochiq) to'g'ridan-to'g'ri
+        # profil javobidan oladi. "organization" maydonining o'zi (FK id)
+        # o'zgarishsiz qoladi — moslik uchun.
+        if user.organization_id:
+            org = user.organization
+            data['organization_detail'] = {
+                'id': org.id,
+                'name': org.org_name,
+                'email': org.email,
+                'telegram_chat_id': org.telegram_chat_id,
+                'status': org.status,
+            }
+        return Response({'success': True, 'data': data})
 
     def put(self, request):
         user = request.user
