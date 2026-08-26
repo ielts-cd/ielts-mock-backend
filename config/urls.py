@@ -16,6 +16,7 @@ urlpatterns = [
     path('api/assignments/', include('apps.exams.assignment_urls')),
     path('api/results/', include('apps.results.urls')),
     path('api/support-tickets/', include('apps.accounts.ticket_urls')),
+    path('api/messages/', include('apps.notifications.urls')),
     path('api/uploads/', include('apps.uploads.urls')),
     path('', frontend, name='frontend'),
 ]
