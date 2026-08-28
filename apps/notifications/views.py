@@ -11,7 +11,10 @@ from .models import Message
 from .serializers import MessageSerializer
 
 # CEO ostidagi "xodim" rollari (Employee) — Support/CEO/Student bundan tashqari.
-STAFF_ROLES = ['admin', 'manager', 'teacher']
+# 'org_support' — CEO/Admin o'z tashkilotiga yaratadigan (yangi) Support xodimi;
+# platforma darajasidagi global 'support' rolidan ATAYLAB farqli qiymat (izoh:
+# apps/accounts/models.py, ROLE_CHOICES).
+STAFF_ROLES = ['admin', 'manager', 'teacher', 'org_support']
 
 
 class MessageViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):

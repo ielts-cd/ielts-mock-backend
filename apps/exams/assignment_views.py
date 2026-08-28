@@ -15,7 +15,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.role == 'support':
             return Assignment.objects.all()
-        if self.request.user.role in ['ceo', 'admin', 'manager', 'teacher']:
+        if self.request.user.role in ['ceo', 'admin', 'manager', 'teacher', 'org_support']:
             return Assignment.objects.filter(organization_id=self.request.user.organization_id)
         if self.request.user.role == 'student':
             return Assignment.objects.filter(

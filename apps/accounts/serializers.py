@@ -75,6 +75,29 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
 
+class StaffSerializer(UserSerializer):
+    """
+    StaffViewSet (CEO/Admin xodim yaratish-boshqarish) uchun UserSerializer'ning
+    ustidan qo'yilgan qatlam — bu yerda "role" maydoni qat'iy cheklanadi:
+    yangi xodim yaratishda/tahrirlashda FAQAT 'admin' yoki 'org_support'
+    (frontendda "Support" deb ko'rinadi) tanlanishi mumkin.
+
+    MUHIM: 'ceo', 'teacher', 'manager' va platforma darajasidagi 'support'
+    qiymatlari shu yo'l orqali BERILMAYDI — frontend select'ida ular
+    ko'rsatilmasa ham, backend darajasida qayta tekshiriladi (frontend
+    tekshiruvi yetarli emas, chunki so'rov to'g'ridan-to'g'ri API'ga ham
+    yuborilishi mumkin).
+    """
+    ALLOWED_ROLES = ['admin', 'org_support']
+
+    def validate_role(self, value):
+        if value not in self.ALLOWED_ROLES:
+            raise serializers.ValidationError(
+                "Xodim uchun faqat 'Admin' yoki 'Support' rolini tanlash mumkin."
+            )
+        return value
+
+
 # YANGI:
 class SupportTicketSerializer(serializers.ModelSerializer):
     class Meta:

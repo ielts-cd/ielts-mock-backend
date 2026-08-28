@@ -16,7 +16,7 @@ class StudentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.role == 'support':
             return User.objects.filter(role='student')
-        if self.request.user.role in ['ceo', 'admin', 'manager', 'teacher']:
+        if self.request.user.role in ['ceo', 'admin', 'manager', 'teacher', 'org_support']:
             return User.objects.filter(
                 role='student',
                 organization_id=self.request.user.organization_id

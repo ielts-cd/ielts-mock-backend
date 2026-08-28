@@ -35,6 +35,7 @@ class Message(models.Model):
         ('admin', 'Admin'),
         ('manager', 'Manager'),
         ('teacher', 'Teacher'),
+        ('org_support', 'Support'),
         ('student', 'Student'),
     )
 

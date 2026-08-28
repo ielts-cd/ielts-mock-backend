@@ -18,11 +18,11 @@ class IsManager(BasePermission):
 
 class IsTeacher(BasePermission):
     def has_permission(self, request, view):
-        return request.user and request.user.role in ['ceo', 'admin', 'manager', 'teacher']
+        return request.user and request.user.role in ['ceo', 'admin', 'manager', 'teacher', 'org_support']
 
 class IsStaff(BasePermission):
     def has_permission(self, request, view):
-        return request.user and request.user.role in ['ceo', 'admin', 'manager', 'teacher']
+        return request.user and request.user.role in ['ceo', 'admin', 'manager', 'teacher', 'org_support']
 
 class IsStudent(BasePermission):
     def has_permission(self, request, view):
@@ -32,7 +32,7 @@ class IsOwnerOrStaff(BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.user.role == 'support':
             return True
-        if request.user.role in ['ceo', 'admin', 'manager', 'teacher']:
+        if request.user.role in ['ceo', 'admin', 'manager', 'teacher', 'org_support']:
             if hasattr(obj, 'organization'):
                 return obj.organization_id == request.user.organization_id
             if hasattr(obj, 'exam') and hasattr(obj.exam, 'organization'):
@@ -47,7 +47,7 @@ class IsOrganizationMember(BasePermission):
     def has_permission(self, request, view):
         if request.user.role == 'support':
             return True
-        if request.user.role in ['ceo', 'admin', 'manager', 'teacher']:
+        if request.user.role in ['ceo', 'admin', 'manager', 'teacher', 'org_support']:
             return request.user.organization_id is not None
         return False
 

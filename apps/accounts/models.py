@@ -41,11 +41,19 @@ class Organization(models.Model):
 class User(models.Model):
     ROLE_CHOICES = (
         ('student', 'Student'),
-        ('teacher', 'Teacher'),
-        ('manager', 'Manager'),
+        ('teacher', 'Teacher'),        # DEPRECATED: yangi xodim yaratishda endi tanlab bo'lmaydi,
+                                        # faqat mavjud (eski) yozuvlar ishlashda davom etishi uchun saqlanadi.
+        ('manager', 'Manager'),        # DEPRECATED: yuqoridagi bilan bir xil sabab.
         ('admin', 'Admin'),
         ('ceo', 'CEO'),
-        ('support', 'Support'),
+        ('support', 'Support'),        # Platforma darajasidagi (global) Support — barcha tashkilotlarni ko'radi.
+        ('org_support', 'Support'),    # CEO/Admin o'z tashkilotiga yarata oladigan tashkilot darajasidagi
+                                        # Support xodimi. MUHIM: ataylab 'support'dan FARQLI qiymat — chunki
+                                        # 'support' butun kod bo'ylab platforma-darajasidagi (barcha
+                                        # tashkilotlarni ko'ra oladigan) huquqni bildiradi. Agar xodimga xuddi
+                                        # shu 'support' qiymati berilsa, u CEO o'z tashkilotiga yaratgan oddiy
+                                        # xodim bo'lgani holda, boshqa BARCHA tashkilotlarning ma'lumotlarini
+                                        # ko'ra oladigan bo'lib qolardi (jiddiy xavfsizlik muammosi).
     )
 
     id = models.CharField(max_length=50, primary_key=True)
