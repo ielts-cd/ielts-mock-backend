@@ -50,10 +50,20 @@ class MessageViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 Q(sender_role='ceo', sender_id=user.id)
             )
 
-        if role in STAFF_ROLES + ['student']:
-            # Employee/Student — faqat o'ziga kelgan xabarlar (ular xabar
-            # yubora olmaydi, faqat qabul qiladi).
-            return Message.objects.filter(recipient_role=role, recipient_id=user.id)
+        if role == 'admin':
+            # YANGI: Admin endi CEO bilan BIR XIL — CEO'dan kelgan xabarlar
+            # (recipient) + o'zi boshqa xodim/o'quvchiga yuborgan xabarlar
+            # (sender) — ikkalasi ham (parity: "CEOda nima bo'lsa, Adminda
+            # ham xuddi shunday").
+            return Message.objects.filter(
+                Q(recipient_role='admin', recipient_id=user.id) |
+                Q(sender_role='admin', sender_id=user.id)
+            )
+
+        if role == 'student':
+            # Student — faqat o'ziga kelgan xabarlar (u xabar yubora olmaydi,
+            # faqat qabul qiladi).
+            return Message.objects.filter(recipient_role='student', recipient_id=user.id)
 
         return Message.objects.none()
 
@@ -61,17 +71,13 @@ class MessageViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     def unread(self, request):
         """
         Joriy foydalanuvchiga tegishli, hali javob berilmagan (status='sent')
-        eng eski xabarni qaytaradi — CEO/Employee/Student dashboard ochilganda
+        eng eski xabarni qaytaradi — CEO/Admin/Student dashboard ochilganda
         avtomatik modal ko'rsatish uchun ishlatiladi. Yo'q bo'lsa data: null.
         """
         user = request.user
         role = getattr(user, 'role', None)
 
-        if role == 'ceo':
-            msg = Message.objects.filter(
-                recipient_role='ceo', recipient_id=user.id, status='sent'
-            ).order_by('created_at').first()
-        elif role in STAFF_ROLES + ['student']:
+        if role in ('ceo', 'admin', 'student'):
             msg = Message.objects.filter(
                 recipient_role=role, recipient_id=user.id, status='sent'
             ).order_by('created_at').first()
@@ -84,9 +90,10 @@ class MessageViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     @action(detail=False, methods=['post'])
     def send(self, request):
         """
-        Xabar yuborish — Support (CEO'larga) yoki CEO (o'z Employee/Student'iga).
-        Bir nechta qabul qiluvchi bo'lsa, har biriga alohida Message qatori
-        yaratiladi (pastga q.: model docstring).
+        Xabar yuborish — Support (CEO'larga) yoki CEO/Admin (o'z tashkilotidagi
+        Employee/Student'iga, ikkalasi bir xil huquqda). Bir nechta qabul
+        qiluvchi bo'lsa, har biriga alohida Message qatori yaratiladi
+        (pastga q.: model docstring).
         """
         user = request.user
         role = getattr(user, 'role', None)
@@ -122,12 +129,19 @@ class MessageViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                     organization=org, message=text,
                 ))
 
-        elif role == 'ceo':
-            # MUHIM: CEO Support'ga yubora olmaydi — bu holat bu yo'l orqali
-            # umuman mumkin emas, chunki qabul qiluvchilar faqat request.user
-            # (=CEO)ning O'Z tashkilotidagi User qatorlaridan tanlanadi va
+        elif role in ('ceo', 'admin'):
+            # YANGI: Admin endi CEO bilan BIR XIL huquqda xabar yubora oladi
+            # (parity), farqi faqat texnik — CEO uchun request.user aslida
+            # Organization obyekti (organization_id = user.id o'zi), Admin
+            # uchun esa oddiy User obyekti (organization_id = user.organization_id).
+            # MUHIM: CEO/Admin Support'ga yubora olmaydi — bu holat bu yo'l
+            # orqali umuman mumkin emas, chunki qabul qiluvchilar faqat
+            # so'rovchining O'Z tashkilotidagi User qatorlaridan tanlanadi va
             # Support hech qachon biror Organization'ga bog'lanmagan
             # (Support — alohida platforma darajasidagi User, organization=None).
+            org_id = user.id if role == 'ceo' else user.organization_id
+            sender_name = user.ceo_name if role == 'ceo' else user.name
+
             recipient_ids = request.data.get('recipient_ids') or []
             single_id = request.data.get('recipient_id')
             if single_id and single_id not in recipient_ids:
@@ -141,7 +155,7 @@ class MessageViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             # tashkilot yoki Support hech qanday holatda tanlanmaydi.
             users = User.objects.filter(
                 id__in=recipient_ids,
-                organization_id=user.id,
+                organization_id=org_id,
                 role__in=STAFF_ROLES + ['student'],
             )
             found_ids = set(users.values_list('id', flat=True))
@@ -155,9 +169,9 @@ class MessageViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             for u in users:
                 created.append(Message.objects.create(
                     id=f"msg_{uuid.uuid4().hex[:12]}",
-                    sender_role='ceo', sender_id=user.id, sender_name=user.ceo_name,
+                    sender_role=role, sender_id=user.id, sender_name=sender_name,
                     recipient_role=u.role, recipient_id=u.id, recipient_name=u.name,
-                    organization=user, message=text,
+                    organization_id=org_id, message=text,
                 ))
 
         else:

@@ -7,15 +7,24 @@ from .serializers import StaffSerializer
 
 class IsCeoOrSupport(BasePermission):
     """
-    YANGI HIYERARXIYA: Support → CEO → Admin. Xodimlarni (Admin hisoblarini)
-    boshqarish — ko'rish, yaratish, tahrirlash, o'chirish — FAQAT CEO
-    (o'z tashkilotiga) va Support (istalgan tashkilotga) uchun. Admin bu
-    bo'limga UMUMAN kira olmaydi — u "oddiy xodim", boshqa xodimlarni
-    (hatto o'z tashkilotidagi boshqa Adminlarni ham) boshqarish huquqiga
-    ega emas.
+    Xodim (Admin hisobi) YARATISH — FAQAT CEO (o'z tashkilotiga) va Support
+    (istalgan tashkilotga) uchun. Admin YANGI XODIM (yoki umuman boshqa
+    foydalanuvchi) YARATA OLMAYDI — bu yagona farq, boshqa hamma narsada
+    (ko'rish/tahrirlash/o'chirish) Admin CEO bilan bir xil huquqqa ega
+    (pastdagi IsStaffManager'ga qarang).
     """
     def has_permission(self, request, view):
         return bool(request.user and request.user.role in ['ceo', 'support'])
+
+class IsStaffManager(BasePermission):
+    """
+    Xodimlar ro'yxatini KO'RISH/TAHRIRLASH/O'CHIRISH — CEO, Admin va Support
+    uchun bir xil (parity: "CEOda nima bo'lsa, Adminda ham xuddi shunday").
+    Faqat YARATISH (create action) bundan mustasno — u yuqoridagi
+    IsCeoOrSupport bilan alohida cheklanadi (get_permissions()ga qarang).
+    """
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.role in ['ceo', 'admin', 'support'])
 
 # Xodim (organization employee) darajasidagi yagona rol — endi faqat 'admin'.
 # ('teacher'/'manager'/'org_support' rollari butunlay olib tashlandi;
@@ -26,9 +35,17 @@ STAFF_ROLES = ['admin']
 
 class StaffViewSet(viewsets.ModelViewSet):
     serializer_class = StaffSerializer
-    permission_classes = [IsAuthenticated, IsCeoOrSupport]
     search_fields = ['name', 'username']
     filterset_fields = ['role', 'status']
+
+    def get_permissions(self):
+        # MUHIM: faqat "create" (yangi xodim yaratish) CEO/Support bilan
+        # cheklanadi — Admin bu amalga hech qachon ruxsat ololmaydi. Boshqa
+        # barcha amallar (list/retrieve/update/partial_update/destroy/status)
+        # uchun Admin ham CEO bilan bir xil ruxsatga ega.
+        if self.action == 'create':
+            return [IsAuthenticated(), IsCeoOrSupport()]
+        return [IsAuthenticated(), IsStaffManager()]
 
     def get_queryset(self):
         # MUHIM: 'support' roli bu yerda ATAYLAB STAFF_ROLES'ga kiritilmagan —
@@ -43,6 +60,9 @@ class StaffViewSet(viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
+        # Bu metodga endi FAQAT CEO yoki Support yeta oladi (get_permissions()
+        # 'create'ni IsCeoOrSupport bilan cheklaydi, Admin bu yerga hech qachon
+        # yetib kelmaydi).
         # CEO — doim FAQAT o'z tashkilotiga xodim qo'sha oladi (xavfsizlik
         # uchun so'rovdan kelgan "organization" qiymati e'tiborga olinmaydi).
         # Support — istalgan tashkilotga xodim qo'sha oladi, lekin qaysi
