@@ -41,20 +41,21 @@ class Organization(models.Model):
 class User(models.Model):
     ROLE_CHOICES = (
         ('student', 'Student'),
-        ('teacher', 'Teacher'),        # DEPRECATED: yangi xodim yaratishda endi tanlab bo'lmaydi,
-                                        # faqat mavjud (eski) yozuvlar ishlashda davom etishi uchun saqlanadi.
-        ('manager', 'Manager'),        # DEPRECATED: yuqoridagi bilan bir xil sabab.
         ('admin', 'Admin'),
         ('ceo', 'CEO'),
-        ('support', 'Support'),        # Platforma darajasidagi (global) Support — barcha tashkilotlarni ko'radi.
-        ('org_support', 'Support'),    # CEO/Admin o'z tashkilotiga yarata oladigan tashkilot darajasidagi
-                                        # Support xodimi. MUHIM: ataylab 'support'dan FARQLI qiymat — chunki
-                                        # 'support' butun kod bo'ylab platforma-darajasidagi (barcha
-                                        # tashkilotlarni ko'ra oladigan) huquqni bildiradi. Agar xodimga xuddi
-                                        # shu 'support' qiymati berilsa, u CEO o'z tashkilotiga yaratgan oddiy
-                                        # xodim bo'lgani holda, boshqa BARCHA tashkilotlarning ma'lumotlarini
-                                        # ko'ra oladigan bo'lib qolardi (jiddiy xavfsizlik muammosi).
+        ('support', 'Support'),  # Global, platforma darajasidagi rol. HECH KIM (Support
+                                  # o'zi ham) API orqali 'support' qiymatiga ega yozuv
+                                  # yarata/tahrirlay/o'chira olmaydi — bu backend darajasida
+                                  # qat'iy taqiqlangan (izoh: serializers.py/UserSerializer
+                                  # va staff_views.py/UserViewSet).
     )
+    # DIQQAT — MUHIM TARIXIY IZOH: ilgari bu yerda 'teacher', 'manager' va
+    # 'org_support' degan qo'shimcha rollar bor edi. Yangi talab bo'yicha
+    # tizimda FAQAT 3 ta asosiy rol qoladi: support / ceo / admin (+ 'student'
+    # alohida, xodim emas). 0005_migrate_legacy_roles_to_admin migratsiyasi
+    # ana shu eski qiymatlarga ega BARCHA mavjud yozuvlarni "admin"ga
+    # ko'chiradi, shu bilan birga ROLE_CHOICES'dan ham butunlay olib
+    # tashlanadi (choices - faqat metama'lumot, DB constraint emas).
 
     id = models.CharField(max_length=50, primary_key=True)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, null=True, blank=True)

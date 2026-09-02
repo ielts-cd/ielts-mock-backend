@@ -18,7 +18,7 @@ class ExamResultViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.role == 'support':
             return ExamResult.objects.all()
-        if self.request.user.role in ['ceo', 'admin', 'manager', 'teacher', 'org_support']:
+        if self.request.user.role in ['ceo', 'admin']:
             return ExamResult.objects.filter(organization_id=self.request.user.organization_id)
         if self.request.user.role == 'student':
             return ExamResult.objects.filter(student=self.request.user)
@@ -35,7 +35,7 @@ class ExamResultViewSet(viewsets.ModelViewSet):
         result = self.get_object()
 
         # Permission check: only staff can grade
-        if request.user.role not in ['support', 'ceo', 'admin', 'manager', 'teacher', 'org_support']:
+        if request.user.role not in ['support', 'ceo', 'admin']:
             return Response({'success': False, 'message': 'Permission denied'},
                             status=status.HTTP_403_FORBIDDEN)
 

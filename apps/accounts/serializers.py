@@ -57,6 +57,22 @@ class UserSerializer(serializers.ModelSerializer):
             return obj.group.id
         return None
 
+    def validate_role(self, value):
+        # MUHIM XAVFSIZLIK QOIDASI (butun loyiha bo'ylab yagona nazorat
+        # nuqtasi): bu UserSerializer StudentViewSet, UserViewSet va h.k.
+        # bir nechta joyda ishlatiladi. 'support' qiymatini HECH KIM (hatto
+        # Support foydalanuvchisining o'zi ham) API orqali biror yozuvga
+        # bera olmasligi kerak — bu rol faqat to'g'ridan-to'g'ri
+        # ma'lumotlar bazasida (masalan boshlang'ich seed skripti orqali)
+        # yaratiladi. 'ceo' esa umuman User modelida emas, alohida
+        # Organization modelida boshqariladi (OrganizationViewSet/
+        # OrganizationSerializer) — shu sabab u ham bu yerdan berilmaydi.
+        if value in ('support', 'ceo'):
+            raise serializers.ValidationError(
+                "Bu rolni ushbu API orqali belgilab bo'lmaydi."
+            )
+        return value
+
     def create(self, validated_data):
         validated_data['id'] = f"usr_{int(datetime.now().timestamp())}_{self.context.get('request').user.id}"
         instance = User(**validated_data)
@@ -77,23 +93,27 @@ class UserSerializer(serializers.ModelSerializer):
 
 class StaffSerializer(UserSerializer):
     """
-    StaffViewSet (CEO/Admin xodim yaratish-boshqarish) uchun UserSerializer'ning
-    ustidan qo'yilgan qatlam — bu yerda "role" maydoni qat'iy cheklanadi:
-    yangi xodim yaratishda/tahrirlashda FAQAT 'admin' yoki 'org_support'
-    (frontendda "Support" deb ko'rinadi) tanlanishi mumkin.
+    StaffViewSet (CEO/Support tomonidan tashkilot xodimini yaratish-boshqarish)
+    uchun UserSerializer'ning ustidan qo'yilgan qatlam — "role" maydoni
+    qat'iy cheklanadi: yangi xodim yaratishda/tahrirlashda FAQAT 'admin'
+    tanlanishi mumkin (yangi hiyerarxiya: Support → CEO → Admin, Admin esa
+    hech kimni yarata olmaydi).
 
-    MUHIM: 'ceo', 'teacher', 'manager' va platforma darajasidagi 'support'
-    qiymatlari shu yo'l orqali BERILMAYDI — frontend select'ida ular
-    ko'rsatilmasa ham, backend darajasida qayta tekshiriladi (frontend
-    tekshiruvi yetarli emas, chunki so'rov to'g'ridan-to'g'ri API'ga ham
-    yuborilishi mumkin).
+    MUHIM: 'ceo' va 'support' qiymatlari bu yo'l orqali ASLO berilmaydi —
+    frontend select'ida ular ko'rsatilmasa ham, backend darajasida qayta
+    tekshiriladi (frontend tekshiruvi yetarli emas, chunki so'rov
+    to'g'ridan-to'g'ri API'ga ham yuborilishi mumkin). Bu tekshiruv
+    UserSerializer.validate_role() dagi umumiy taqiqni ('support'/'ceo')
+    yana ham qattiqroq qiladi — bu yerda boshqa hech qanday qiymatga ('teacher',
+    'manager' kabi eskirgan yoki tasodifiy qiymatlarga) ham yo'l qo'yilmaydi.
     """
-    ALLOWED_ROLES = ['admin', 'org_support']
+    ALLOWED_ROLES = ['admin']
 
     def validate_role(self, value):
+        value = super().validate_role(value)
         if value not in self.ALLOWED_ROLES:
             raise serializers.ValidationError(
-                "Xodim uchun faqat 'Admin' yoki 'Support' rolini tanlash mumkin."
+                "Xodim uchun faqat 'Admin' rolini tanlash mumkin."
             )
         return value
 

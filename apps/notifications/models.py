@@ -33,9 +33,6 @@ class Message(models.Model):
     RECIPIENT_ROLE_CHOICES = (
         ('ceo', 'CEO'),
         ('admin', 'Admin'),
-        ('manager', 'Manager'),
-        ('teacher', 'Teacher'),
-        ('org_support', 'Support'),
         ('student', 'Student'),
     )
 

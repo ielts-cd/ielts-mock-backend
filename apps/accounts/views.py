@@ -36,7 +36,10 @@ class LoginView(APIView):
                 pass
 
         elif role == 'ceo':
-            # CEO or Staff (Admin/Manager/Teacher)
+            # CEO yoki Admin (organization xodimi) — ikkalasi ham shu umumiy
+            # "ceo" login yo'nalishidan kiradi (Admin uchun alohida login URL
+            # yo'q, izoh: staff_urls.py/frontend qismida ham). Avval Organization
+            # (CEO) jadvalidan qidiriladi, topilmasa User (Admin) jadvalidan.
             try:
                 org = Organization.objects.get(username=username)
                 if org.check_password(password):
@@ -58,7 +61,7 @@ class LoginView(APIView):
                     pass
 
         else:
-            # Student, Teacher, Manager, Admin
+            # Student yoki (to'g'ridan-to'g'ri role='admin' bilan so'ralsa) Admin
             try:
                 user = User.objects.get(username=username, role=role)
                 if user.check_password(password):

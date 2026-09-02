@@ -1,0 +1,37 @@
+[1mdiff --git a/apps/accounts/models.py b/apps/accounts/models.py[m
+[1mindex 76117db..90a899a 100644[m
+[1m--- a/apps/accounts/models.py[m
+[1m+++ b/apps/accounts/models.py[m
+[36m@@ -41,20 +41,21 @@[m [mclass Organization(models.Model):[m
+ class User(models.Model):[m
+     ROLE_CHOICES = ([m
+         ('student', 'Student'),[m
+[31m-        ('teacher', 'Teacher'),        # DEPRECATED: yangi xodim yaratishda endi tanlab bo'lmaydi,[m
+[31m-                                        # faqat mavjud (eski) yozuvlar ishlashda davom etishi uchun saqlanadi.[m
+[31m-        ('manager', 'Manager'),        # DEPRECATED: yuqoridagi bilan bir xil sabab.[m
+         ('admin', 'Admin'),[m
+         ('ceo', 'CEO'),[m
+[31m-        ('support', 'Support'),        # Platforma darajasidagi (global) Support — barcha tashkilotlarni ko'radi.[m
+[31m-        ('org_support', 'Support'),    # CEO/Admin o'z tashkilotiga yarata oladigan tashkilot darajasidagi[m
+[31m-                                        # Support xodimi. MUHIM: ataylab 'support'dan FARQLI qiymat — chunki[m
+[31m-                                        # 'support' butun kod bo'ylab platforma-darajasidagi (barcha[m
+[31m-                                        # tashkilotlarni ko'ra oladigan) huquqni bildiradi. Agar xodimga xuddi[m
+[31m-                                        # shu 'support' qiymati berilsa, u CEO o'z tashkilotiga yaratgan oddiy[m
+[31m-                                        # xodim bo'lgani holda, boshqa BARCHA tashkilotlarning ma'lumotlarini[m
+[31m-                                        # ko'ra oladigan bo'lib qolardi (jiddiy xavfsizlik muammosi).[m
+[32m+[m[32m        ('support', 'Support'),  # Global, platforma darajasidagi rol. HECH KIM (Support[m
+[32m+[m[32m                                  # o'zi ham) API orqali 'support' qiymatiga ega yozuv[m
+[32m+[m[32m                                  # yarata/tahrirlay/o'chira olmaydi — bu backend darajasida[m
+[32m+[m[32m                                  # qat'iy taqiqlangan (izoh: serializers.py/UserSerializer[m
+[32m+[m[32m                                  # va staff_views.py/UserViewSet).[m
+     )[m
+[32m+[m[32m    # DIQQAT — MUHIM TARIXIY IZOH: ilgari bu yerda 'teacher', 'manager' va[m
+[32m+[m[32m    # 'org_support' degan qo'shimcha rollar bor edi. Yangi talab bo'yicha[m
+[32m+[m[32m    # tizimda FAQAT 3 ta asosiy rol qoladi: support / ceo / admin (+ 'student'[m
+[32m+[m[32m    # alohida, xodim emas). 0005_migrate_legacy_roles_to_admin migratsiyasi[m
+[32m+[m[32m    # ana shu eski qiymatlarga ega BARCHA mavjud yozuvlarni "admin"ga[m
+[32m+[m[32m    # ko'chiradi, shu bilan birga ROLE_CHOICES'dan ham butunlay olib[m
+[32m+[m[32m    # tashlanadi (choices - faqat metama'lumot, DB constraint emas).[m
+ [m
+     id = models.CharField(max_length=50, primary_key=True)[m
+     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, null=True, blank=True)[m

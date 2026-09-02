@@ -20,7 +20,7 @@ class GroupViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.role == 'support':
             return Group.objects.all()
-        if self.request.user.role in ['ceo', 'admin', 'manager', 'teacher', 'org_support']:
+        if self.request.user.role in ['ceo', 'admin']:
             return Group.objects.filter(organization_id=self.request.user.organization_id)
         return Group.objects.none()
 
@@ -37,7 +37,7 @@ class ExamViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.role == 'support':
             return Exam.objects.all()
-        if self.request.user.role in ['ceo', 'admin', 'manager', 'teacher', 'org_support']:
+        if self.request.user.role in ['ceo', 'admin']:
             return Exam.objects.filter(organization_id=self.request.user.organization_id)
         if self.request.user.role == 'student':
             return Exam.objects.filter(

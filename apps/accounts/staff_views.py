@@ -4,40 +4,37 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, BasePermission
 from .models import User
 from .serializers import StaffSerializer
-from .permissions import IsSupport, IsAdmin
 
-class IsAdminOrSupport(BasePermission):
+class IsCeoOrSupport(BasePermission):
+    """
+    YANGI HIYERARXIYA: Support → CEO → Admin. Xodimlarni (Admin hisoblarini)
+    boshqarish — ko'rish, yaratish, tahrirlash, o'chirish — FAQAT CEO
+    (o'z tashkilotiga) va Support (istalgan tashkilotga) uchun. Admin bu
+    bo'limga UMUMAN kira olmaydi — u "oddiy xodim", boshqa xodimlarni
+    (hatto o'z tashkilotidagi boshqa Adminlarni ham) boshqarish huquqiga
+    ega emas.
+    """
     def has_permission(self, request, view):
-        return bool(request.user and request.user.role in ['ceo', 'admin', 'support'])
+        return bool(request.user and request.user.role in ['ceo', 'support'])
 
-# Ro'yxatdagi mavjud (eski) xodim rollari — 'manager'/'teacher' DEPRECATED:
-# yangi xodim endi shu rollar bilan yaratilmaydi (StaffSerializer buni
-# taqiqlaydi), lekin ilgari yaratilgan xodimlar ro'yxatdan tushib
-# ketmasligi/ishlashda davom etishi uchun queryset filtrida saqlanadi.
-STAFF_ROLES = ['admin', 'org_support', 'manager', 'teacher']
+# Xodim (organization employee) darajasidagi yagona rol — endi faqat 'admin'.
+# ('teacher'/'manager'/'org_support' rollari butunlay olib tashlandi;
+# 0005_migrate_legacy_roles_to_admin migratsiyasi mavjud bazadagi bunday
+# yozuvlarni ham "admin"ga o'tkazgan, shu sabab bu yerda ularni alohida
+# hisobga olishning hojati yo'q.)
+STAFF_ROLES = ['admin']
 
 class StaffViewSet(viewsets.ModelViewSet):
     serializer_class = StaffSerializer
-    # MUHIM: Support ham (istalgan tashkilotning) xodimlar ro'yxatini ko'ra
-    # olishi kerak (masalan "Tashkilotlar" panelidagi xodimlar modali uchun) —
-    # avval faqat IsAdmin (ceo|admin) ruxsat berilgan edi, Support esa 403
-    # olardi, garchi get_queryset() pastda uni to'g'ri hisobga olsa ham.
-    # Lekin YANGI XODIM YARATISH (create) — endi faqat CEO/Admin uchun,
-    # Support xodim yarata olmasligi kerak (get_permissions() pastda buni
-    # ta'minlaydi).
-    permission_classes = [IsAuthenticated, IsAdminOrSupport]
+    permission_classes = [IsAuthenticated, IsCeoOrSupport]
     search_fields = ['name', 'username']
     filterset_fields = ['role', 'status']
 
-    def get_permissions(self):
-        if self.action == 'create':
-            # Faqat CEO va Admin xodim yarata oladi — Support bu yerga
-            # umuman kirmaydi (403 qaytadi), garchi ro'yxatni ko'rish uchun
-            # IsAdminOrSupport orqali ruxsati bo'lsa ham.
-            return [IsAuthenticated(), IsAdmin()]
-        return [IsAuthenticated(), IsAdminOrSupport()]
-
     def get_queryset(self):
+        # MUHIM: 'support' roli bu yerda ATAYLAB STAFF_ROLES'ga kiritilmagan —
+        # shu sabab Support hisoblari bu ro'yxatda (demak update/destroy orqali
+        # ham) HECH QACHON ko'rinmaydi, hatto boshqa Support foydalanuvchisi
+        # so'rasa ham ("Support accountini hech kim o'zgartira/o'chira olmasin").
         if self.request.user.role == 'support':
             return User.objects.filter(role__in=STAFF_ROLES)
         return User.objects.filter(
@@ -46,12 +43,15 @@ class StaffViewSet(viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
-        # MUHIM: bu nuqtaga endi faqat CEO yoki Admin yeta oladi (get_permissions()
-        # 'create' amalini IsAdmin bilan cheklaydi, Support bu yerga hech qachon
-        # yetib kelmaydi) — shu sabab har doim so'rovchining O'Z tashkilotiga
-        # biriktiriladi (xavfsizlik uchun so'rovdan kelgan "organization"
-        # qiymati e'tiborga olinmaydi).
-        serializer.save(organization_id=self.request.user.organization_id)
+        # CEO — doim FAQAT o'z tashkilotiga xodim qo'sha oladi (xavfsizlik
+        # uchun so'rovdan kelgan "organization" qiymati e'tiborga olinmaydi).
+        # Support — istalgan tashkilotga xodim qo'sha oladi, lekin qaysi
+        # tashkilotga tegishli ekanligi so'rovda ANIQ ko'rsatilishi shart.
+        if self.request.user.role == 'support':
+            org_id = self.request.data.get('organization') or self.request.data.get('orgId')
+            serializer.save(organization_id=org_id)
+        else:
+            serializer.save(organization_id=self.request.user.organization_id)
 
     @action(detail=True, methods=['patch'])
     def status(self, request, pk=None):
