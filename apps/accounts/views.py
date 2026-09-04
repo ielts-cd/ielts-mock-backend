@@ -36,10 +36,10 @@ class LoginView(APIView):
                 pass
 
         elif role == 'ceo':
-            # CEO yoki Admin (organization xodimi) — ikkalasi ham shu umumiy
-            # "ceo" login yo'nalishidan kiradi (Admin uchun alohida login URL
-            # yo'q, izoh: staff_urls.py/frontend qismida ham). Avval Organization
-            # (CEO) jadvalidan qidiriladi, topilmasa User (Admin) jadvalidan.
+            # YANGILANDI: endi FAQAT Organization (CEO) jadvalidan qidiriladi
+            # — Admin (User jadvali) hisobi bilan bu yo'ldan kirish RAD
+            # ETILADI, hatto username/parol boshqa joyda to'g'ri bo'lsa ham.
+            # ?role=ceo — endi FAQAT haqiqiy CEO hisoblari uchun.
             try:
                 org = Organization.objects.get(username=username)
                 if org.check_password(password):
@@ -50,18 +50,12 @@ class LoginView(APIView):
             except Organization.DoesNotExist:
                 pass
 
-            if not org:
-                try:
-                    user = User.objects.get(username=username, organization__isnull=False)
-                    if user.check_password(password):
-                        org_id = user.organization_id
-                    else:
-                        user = None
-                except User.DoesNotExist:
-                    pass
-
         else:
-            # Student yoki (to'g'ridan-to'g'ri role='admin' bilan so'ralsa) Admin
+            # Support yuqorida alohida ushlanadi. Bu yerga FAQAT 'admin' va
+            # 'student' tushadi — ikkalasi ham QAT'IY User.role maydoni bilan
+            # ANIQ mos kelishi shart (masalan ?role=admin sahifasida CEO
+            # hisobi bilan kirishga urinish shu yerda RAD ETILADI, chunki CEO
+            # uchun User jadvalida mos yozuv yo'q/roli 'admin' emas).
             try:
                 user = User.objects.get(username=username, role=role)
                 if user.check_password(password):

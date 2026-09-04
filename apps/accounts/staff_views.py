@@ -7,24 +7,33 @@ from .serializers import StaffSerializer
 
 class IsCeoOrSupport(BasePermission):
     """
-    Xodim (Admin hisobi) YARATISH — FAQAT CEO (o'z tashkilotiga) va Support
-    (istalgan tashkilotga) uchun. Admin YANGI XODIM (yoki umuman boshqa
-    foydalanuvchi) YARATA OLMAYDI — bu yagona farq, boshqa hamma narsada
-    (ko'rish/tahrirlash/o'chirish) Admin CEO bilan bir xil huquqqa ega
-    (pastdagi IsStaffManager'ga qarang).
-    """
-    def has_permission(self, request, view):
-        return bool(request.user and request.user.role in ['ceo', 'support'])
+    YANGILANDI (qaytarildi): Xodimlarni (Admin hisoblarini) TO'LIQ boshqarish
+    — ro'yxatni ko'rish, yaratish, boshqa xodimni tahrirlash/o'chirish —
+    FAQAT CEO (o'z tashkilotiga) va Support (istalgan tashkilotga) uchun.
+    "Xodimlar" endi Admin uchun mavjud emas (frontendda ham tab butunlay
+    yashirilgan, izoh: index.html/AdminApp).
 
-class IsStaffManager(BasePermission):
-    """
-    Xodimlar ro'yxatini KO'RISH/TAHRIRLASH/O'CHIRISH — CEO, Admin va Support
-    uchun bir xil (parity: "CEOda nima bo'lsa, Adminda ham xuddi shunday").
-    Faqat YARATISH (create action) bundan mustasno — u yuqoridagi
-    IsCeoOrSupport bilan alohida cheklanadi (get_permissions()ga qarang).
+    MUHIM ISTISNO: Admin baribir shu endpoint orqali FAQAT O'Z profilini
+    (ism/telefon/avatar/parol) yangilay olishi kerak — chunki "Profil"
+    sahifasi buni ishlatadi (frontendda "Xodimlar" bo'limi yo'qligidan
+    qat'iy nazar, shaxsiy profilni tahrirlash alohida, umumiy imkoniyat).
+    Shu sabab PATCH/PUT (update/partial_update) uchun Admin'ga view
+    darajasida yo'l beriladi, lekin OBYEKT darajasida (has_object_permission)
+    faqat AYNAN O'Z yozuviga ruxsat beriladi — boshqa birorta ham emas.
     """
     def has_permission(self, request, view):
-        return bool(request.user and request.user.role in ['ceo', 'admin', 'support'])
+        if request.user and request.user.role in ('ceo', 'support'):
+            return True
+        if request.user and request.user.role == 'admin' and view.action in ('update', 'partial_update'):
+            return True
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        if request.user.role in ('ceo', 'support'):
+            return True
+        if request.user.role == 'admin':
+            return obj.id == request.user.id
+        return False
 
 # Xodim (organization employee) darajasidagi yagona rol — endi faqat 'admin'.
 # ('teacher'/'manager'/'org_support' rollari butunlay olib tashlandi;
@@ -35,17 +44,9 @@ STAFF_ROLES = ['admin']
 
 class StaffViewSet(viewsets.ModelViewSet):
     serializer_class = StaffSerializer
+    permission_classes = [IsAuthenticated, IsCeoOrSupport]
     search_fields = ['name', 'username']
     filterset_fields = ['role', 'status']
-
-    def get_permissions(self):
-        # MUHIM: faqat "create" (yangi xodim yaratish) CEO/Support bilan
-        # cheklanadi — Admin bu amalga hech qachon ruxsat ololmaydi. Boshqa
-        # barcha amallar (list/retrieve/update/partial_update/destroy/status)
-        # uchun Admin ham CEO bilan bir xil ruxsatga ega.
-        if self.action == 'create':
-            return [IsAuthenticated(), IsCeoOrSupport()]
-        return [IsAuthenticated(), IsStaffManager()]
 
     def get_queryset(self):
         # MUHIM: 'support' roli bu yerda ATAYLAB STAFF_ROLES'ga kiritilmagan —
@@ -60,9 +61,6 @@ class StaffViewSet(viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
-        # Bu metodga endi FAQAT CEO yoki Support yeta oladi (get_permissions()
-        # 'create'ni IsCeoOrSupport bilan cheklaydi, Admin bu yerga hech qachon
-        # yetib kelmaydi).
         # CEO — doim FAQAT o'z tashkilotiga xodim qo'sha oladi (xavfsizlik
         # uchun so'rovdan kelgan "organization" qiymati e'tiborga olinmaydi).
         # Support — istalgan tashkilotga xodim qo'sha oladi, lekin qaysi
